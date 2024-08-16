@@ -1,25 +1,26 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, json
+from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 from werkzeug.wsgi import FileWrapper
 
 import util
-from util import allowed_file, gettext, Model
+from util import Model
 
 app = Flask(__name__)
 
-# @app.errorhandler(HTTPException)
-# def handle_exception(e):
-#     """Return JSON instead of HTML for HTTP errors."""
-#     # start with the correct headers and status code from the error
-#     response = e.get_response()
-#     # replace the body with JSON
-#     response.data = json.dumps({
-#         "code": e.code,
-#         "name": e.name,
-#         "description": e,
-#     })
-#     response.content_type = "application/json"
-#     return response
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    response = e.get_response()
+    # replace the body with JSON
+    response.data = json.dumps({
+        "code": e.code,
+        "name": e.name,
+        "description": e,
+    })
+    response.content_type = "application/json"
+    return response
 
 @app.route('/')
 def hello_world():  # put application's code here
@@ -34,9 +35,9 @@ def gettext():
     # empty file without a filename.
     if file.filename == '':
         return Response('No selected file', status=400)
-    if file and allowed_file(file.filename):
-        args = Model()
-        args.filename: secure_filename(file.filename)
+    if file and util.allowed_file(file.filename):
+        args: Model = Model()
+        args.filename = secure_filename(file.filename)
         args.stream = file.stream.read()
         args.password = request.args.get('password')
         args.pages = request.args.get('pages', '1-N')
